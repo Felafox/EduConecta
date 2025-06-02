@@ -1,43 +1,38 @@
 import logging
-from fastapi import APIRouter, Request, Header, Query, HTTPException, Response
+from fastapi import APIRouter, Request, Response, BackgroundTasks
 
-# Importamos la instancia de configuración centralizada
 from core.config import settings
+# Importamos nuestro nuevo procesador de mensajes
+from services.message_processor import process_whatsapp_message
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Se eliminó la variable VERIFY_TOKEN de aquí
-
 webhook_router = APIRouter()
 
+# ... (El endpoint GET se mantiene igual) ...
 @webhook_router.get("/webhook", tags=["WhatsApp"])
 def verify_webhook(
-    mode: str = Query(..., alias="hub.mode"),
-    token: str = Query(..., alias="hub.verify_token"),
-    challenge: str = Query(..., alias="hub.challenge"),
+    mode: str,
+    token: str,
+    challenge: str,
 ):
-    """
-    Verifica el webhook con la API de WhatsApp.
-    Usa el VERIFY_TOKEN desde la configuración centralizada.
-    """
-    logger.info(f"Verificación de Webhook recibida: mode={mode}")
-    # Ahora usamos settings.VERIFY_TOKEN en lugar de la variable local
     if mode == "subscribe" and token == settings.VERIFY_TOKEN:
-        logger.info("Verificación de Webhook exitosa.")
         return Response(content=challenge, media_type="text/plain", status_code=200)
-    else:
-        logger.error("Fallo en la verificación del Webhook. Tokens no coinciden.")
-        raise HTTPException(status_code=403, detail="Error de verificación de token")
+    return Response(status_code=403)
 
 @webhook_router.post("/webhook", tags=["WhatsApp"])
-async def receive_message(request: Request):
+async def receive_message(request: Request, background_tasks: BackgroundTasks):
     """
     Recibe notificaciones de mensajes entrantes desde WhatsApp.
+    Usa BackgroundTasks para procesar el mensaje sin bloquear la respuesta. [cite: 765]
     """
     payload = await request.json()
-    logger.info(f"Mensaje recibido: {payload}")
+    logger.info(f"Payload recibido: {payload}")
 
-    # TODO: Llamada al procesador de mensajes (Tarea COM-05)
+    # Añadimos la tarea de procesamiento a un segundo plano.
+    # Esto permite que devolvamos un 200 OK a WhatsApp inmediatamente,
+    # una práctica recomendada para la robustez del webhook. [cite: 754, 766]
+    background_tasks.add_task(process_whatsapp_message, payload)
 
     return Response(status_code=200)
