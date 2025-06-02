@@ -7,7 +7,7 @@ logger = logging.getLogger(__name__)
 
 # NOTA: Este token será gestionado de forma segura en la Tarea COM-04.
 # Por ahora, lo definimos aquí para que el endpoint funcione.
-VERIFY_TOKEN = "una_clave_secreta_para_educonecta" 
+VERIFY_TOKEN = "W3paiiry." 
 
 webhook_router = APIRouter()
 
