@@ -1,13 +1,13 @@
 import logging
 from fastapi import APIRouter, Request, Header, Query, HTTPException, Response
 
-# Configuración básica de logging para ver qué está pasando
+# Importamos la instancia de configuración centralizada
+from core.config import settings
+
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# NOTA: Este token será gestionado de forma segura en la Tarea COM-04.
-# Por ahora, lo definimos aquí para que el endpoint funcione.
-VERIFY_TOKEN = "W3paiiry." 
+# Se eliminó la variable VERIFY_TOKEN de aquí
 
 webhook_router = APIRouter()
 
@@ -19,10 +19,11 @@ def verify_webhook(
 ):
     """
     Verifica el webhook con la API de WhatsApp.
-    Meta envía una petición GET a esta URL para confirmar su autenticidad.
+    Usa el VERIFY_TOKEN desde la configuración centralizada.
     """
-    logger.info(f"Verificación de Webhook recibida: mode={mode}, token={token}")
-    if mode == "subscribe" and token == VERIFY_TOKEN:
+    logger.info(f"Verificación de Webhook recibida: mode={mode}")
+    # Ahora usamos settings.VERIFY_TOKEN en lugar de la variable local
+    if mode == "subscribe" and token == settings.VERIFY_TOKEN:
         logger.info("Verificación de Webhook exitosa.")
         return Response(content=challenge, media_type="text/plain", status_code=200)
     else:
@@ -33,12 +34,10 @@ def verify_webhook(
 async def receive_message(request: Request):
     """
     Recibe notificaciones de mensajes entrantes desde WhatsApp.
-    Esta función pasará el payload al procesador de mensajes (COM-05).
     """
     payload = await request.json()
     logger.info(f"Mensaje recibido: {payload}")
 
-    # TODO: Aquí irá la llamada al procesador de mensajes (Tarea COM-05)
+    # TODO: Llamada al procesador de mensajes (Tarea COM-05)
 
-    # Responde inmediatamente con un 200 OK a WhatsApp para confirmar la recepción.
     return Response(status_code=200)
